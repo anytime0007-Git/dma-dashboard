@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DMA Dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#f6f7f9; --card:#fff; --text:#1f2933; --muted:#6b7785; --line:#e3e7ec; --accent:#1a73e8; --accent-bg:#e8f0fe;
+  --green:#1e8e3e; --green-bg:#e6f4ea; --yellow:#b06000; --yellow-bg:#fef7e0; --red:#d93025; --red-bg:#fce8e6; --head:#f0f3f7;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#14171a; --card:#1d2125; --text:#e6e9ec; --muted:#9aa5b1; --line:#2d333a; --accent:#8ab4f8; --accent-bg:#26324a;
+    --green:#81c995; --green-bg:#1e3326; --yellow:#fdd663; --yellow-bg:#3a3217; --red:#f28b82; --red-bg:#3c2220; --head:#252b31; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Sarabun','Noto Sans Thai',system-ui,sans-serif;font-size:15px}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+header h1{font-size:18px;margin:0;font-weight:700}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{border:0;background:none;color:var(--muted);padding:8px 14px;border-radius:8px;font:inherit;cursor:pointer}
+nav button.on{background:var(--accent-bg);color:var(--accent);font-weight:700}
+.sp{flex:1}
+main{padding:20px;max-width:1500px;margin:0 auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.card .n{font-size:28px;font-weight:700;line-height:1.1}
+.card .l{color:var(--muted);font-size:13px;margin-top:4px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+input[type=text],select{font:inherit;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+input[type=text]{min-width:220px}
+.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);padding:7px 14px;border-radius:8px;cursor:pointer}
+.btn.p{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn:disabled{opacity:.5;cursor:default}
+.wrap{overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}
+td.w{white-space:normal;min-width:220px;max-width:420px}
+th{background:var(--head);position:sticky;top:0;cursor:pointer;user-select:none;z-index:1}
+td.num,th.num{text-align:right}
+tbody tr:hover{background:var(--accent-bg)}
+tr.click{cursor:pointer}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:500}
+.pill.g{background:var(--green-bg);color:var(--green)} .pill.y{background:var(--yellow-bg);color:var(--yellow)}
+.pill.r{background:var(--red-bg);color:var(--red)} .pill.n{background:var(--head);color:var(--muted)}
+.muted{color:var(--muted)}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:28px;text-align:center;color:var(--muted)}
+.drop.over{border-color:var(--accent);background:var(--accent-bg)}
+.file{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:8px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.file .t{font-weight:700}
+.err{color:var(--red)} .ok{color:var(--green)}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#202124;color:#fff;padding:10px 18px;border-radius:8px;display:none;z-index:20}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:15}
+#modal .m{background:var(--card);border-radius:14px;max-width:900px;width:100%;padding:18px 20px}
+.kv{display:grid;grid-template-columns:170px 1fr;gap:4px 12px;font-size:14px}
+.kv div:nth-child(odd){color:var(--muted)}
+.kv div{word-break:break-word}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s .8s linear infinite;vertical-align:-2px}
+@keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>DMA Dashboard</h1>
+  <nav id="nav">
+    <button data-v="dash" class="on">ภาพรวม</button>
+    <button data-v="summary">Run Summary</button>
+    <button data-v="gaps">Data Gap</button>
+    <button data-v="import">นำเข้าข้อมูล</button>
+  </nav>
+  <div class="sp"></div>
+  <span id="stamp" class="muted"></span>
+  <button class="btn" id="reload">โหลดใหม่</button>
+  <button class="btn" id="logout">ออกจากระบบ</button>
+</header>
+<main id="main"><span class="spin"></span> กำลังโหลดข้อมูล…</main>
+<div id="toast"></div>
+<div id="modal"><div class="m" id="modalBody"></div></div>
+
+<script>
+var DATA = {summary:{headers:[],rows:[]}, gaps:{headers:[],rows:[]}};
+var VIEW = 'dash';
+var ST = { summary:{q:'',tier:'',sort:null,dir:1}, gaps:{q:'',dma:'',level:'',sort:null,dir:1}, dash:{q:'',tier:'',sort:null,dir:1} };
+var NUMCOLS = ['no','DMloaction_points','DM_group_meters','junctions','pipes','valves','demand_m3h','alpha','repair_pipes','loss_pct','inflow_m3day','nrw_pct','cis_coverage_pct'];
+var $ = function(id){ return document.getElementById(id); };
+
+function esc(s){ return String(s===null||s===undefined?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function toast(msg){ var t=$('toast'); t.textContent=msg; t.style.display='block'; clearTimeout(toast.h); toast.h=setTimeout(function(){t.style.display='none';},3500); }
+function fmt(k,v){
+  if(typeof v==='number'){ if(k==='alpha') return v.toFixed(6); return Number.isInteger(v)?String(v):v.toFixed(2); }
+  return esc(v);
+}
+function tierPill(t){
+  t=String(t||''); var c='n';
+  if(t.indexOf('เขียว')>-1) c='g'; else if(t.indexOf('เหลือง')>-1) c='y'; else if(t.indexOf('แดง')>-1) c='r';
+  return t?'<span class="pill '+c+'">'+esc(t)+'</span>':'';
+}
+function levelPill(t){
+  var c='n'; if(t==='ต้องแก้') c='r'; else if(t==='ควรตรวจ') c='y'; else if(t==='ข้อมูล') c='g';
+  return '<span class="pill '+c+'">'+esc(t)+'</span>';
+}
+
+/* ---------- โหลดข้อมูล ---------- */
+/* ===== ตั้งค่า: ใส่ URL เว็บแอป Apps Script (ลงท้าย /exec) ===== */
+var API_URL = 'https://script.google.com/macros/s/AKfycbyWLAX4UpJbkXQNSCsUpdivSmT87D0H1Wck1Fso9ITGwkzYQp2kjUMUYjcc-HuoZf2X/exec';
+
+function getKey(){ try{ return localStorage.getItem('dma_key')||''; }catch(e){ return ''; } }
+function setKey(k){ try{ localStorage.setItem('dma_key',k); }catch(e){} }
+function api(action,payload){
+  var body=JSON.stringify(Object.assign({action:action,key:getKey()},payload||{}));
+  return fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:body})
+    .then(function(r){ return r.json(); })
+    .then(function(j){ if(j.error){ var e=new Error(j.error); e.auth=!!j.auth; throw e; } return j.data; });
+}
+function showLogin(msg){
+  $('main').innerHTML='<div class="box" style="max-width:380px;margin:40px auto"><h3 style="margin-top:0">เข้าสู่ระบบ</h3>'+
+    (msg?'<p class="err">'+esc(msg)+'</p>':'')+
+    '<div class="tools"><input type="password" id="pw" placeholder="รหัสผ่าน" style="min-width:200px;font:inherit;border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--card);color:var(--text)">'+
+    '<button class="btn p" id="pwgo">เข้าใช้งาน</button></div></div>';
+  function go(){ setKey($('pw').value); $('main').innerHTML='<span class="spin"></span> กำลังโหลดข้อมูล…'; load(); }
+  $('pwgo').onclick=go; $('pw').onkeydown=function(e){ if(e.key==='Enter') go(); }; $('pw').focus();
+}
+function load(){
+  api('getData').then(function(d){
+    DATA=d; $('stamp').textContent='อัปเดต '+new Date().toLocaleTimeString('th-TH'); render();
+  }).catch(function(e){
+    if(e.auth) showLogin(getKey()?e.message:''); else $('main').innerHTML='<p class="err">โหลดไม่สำเร็จ: '+esc(e.message||e)+'</p>';
+  });
+}
+$('reload').onclick=function(){ $('main').innerHTML='<span class="spin"></span> กำลังโหลดข้อมูล…'; load(); };
+$('logout').onclick=function(){ setKey(''); load(); };
+$('nav').onclick=function(e){
+  var b=e.target.closest('button'); if(!b) return; VIEW=b.dataset.v;
+  Array.prototype.forEach.call($('nav').children,function(x){x.classList.toggle('on',x===b);}); render();
+};
+
+function render(){
+  if(VIEW==='dash') renderDash(); else if(VIEW==='summary') renderSummary();
+  else if(VIEW==='gaps') renderGaps(); else renderImport();
+}
+
+/* ---------- ตารางทั่วไป ---------- */
+function sortRows(rows,s){
+  if(!s.sort) return rows;
+  var k=s.sort, d=s.dir;
+  return rows.slice().sort(function(a,b){
+    var x=a[k],y=b[k]; if(x===''||x===undefined) return 1; if(y===''||y===undefined) return -1;
+    if(typeof x==='number'&&typeof y==='number') return (x-y)*d;
+    return String(x).localeCompare(String(y),'th')*d;
+  });
+}
+function buildTable(cols,rows,s,opt){
+  opt=opt||{};
+  var h='<div class="wrap"><table><thead><tr>';
+  cols.forEach(function(c){
+    var num=NUMCOLS.indexOf(c.k)>-1||c.num;
+    h+='<th data-k="'+esc(c.k)+'" class="'+(num?'num':'')+'">'+esc(c.t||c.k)+(s.sort===c.k?(s.dir>0?' ▲':' ▼'):'')+'</th>';
+  });
+  h+='</tr></thead><tbody>';
+  rows.forEach(function(r,i){
+    h+='<tr'+(opt.click?' class="click" data-dma="'+esc(r.dma)+'"':'')+'>';
+    cols.forEach(function(c){
+      var num=NUMCOLS.indexOf(c.k)>-1||c.num, v=r[c.k], cell;
+      if(c.fn) cell=c.fn(r); else if(c.k==='tier') cell=tierPill(v); else if(c.k==='level') cell=levelPill(v); else cell=fmt(c.k,v);
+      h+='<td class="'+(num?'num':'')+(c.wide?' w':'')+'">'+cell+'</td>';
+    });
+    h+='</tr>';
+  });
+  if(!rows.length) h+='<tr><td colspan="'+cols.length+'" class="muted">ไม่มีข้อมูล</td></tr>';
+  return h+'</tbody></table></div>';
+}
+function bindTable(root,s,rerender,onRow){
+  Array.prototype.forEach.call(root.querySelectorAll('th'),function(th){
+    th.onclick=function(){ var k=th.dataset.k; if(s.sort===k) s.dir=-s.dir; else {s.sort=k;s.dir=1;} rerender(); };
+  });
+  if(onRow) Array.prototype.forEach.call(root.querySelectorAll('tr.click'),function(tr){ tr.onclick=function(){ onRow(tr.dataset.dma); }; });
+}
+function matchQ(r,q){ if(!q) return true; q=q.toLowerCase(); for(var k in r){ if(String(r[k]).toLowerCase().indexOf(q)>-1) return true; } return false; }
+function uniq(rows,k){ var o={}; rows.forEach(function(r){ if(r[k]!=='') o[r[k]]=1; }); return Object.keys(o).sort(); }
+function options(list,sel,all){ return '<option value="">'+all+'</option>'+list.map(function(x){return '<option'+(x===sel?' selected':'')+'>'+esc(x)+'</option>';}).join(''); }
+function downloadCSV(name,headers,rows){
+  var lines=[headers.join(',')];
+  rows.forEach(function(r){
+    lines.push(headers.map(function(h){
+      var v=r[h]; v=(v===undefined||v===null)?'':String(v);
+      if(h==='dma') v='="'+v+'"';
+      return '"'+v.replace(/"/g,'""')+'"';
+    }).join(','));
+  });
+  var blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+}
+
+/* ---------- ภาพรวม ---------- */
+function gapCount(dma,level){ return DATA.gaps.rows.filter(function(g){return g.dma===dma&&g.level===level;}).length; }
+function renderDash(){
+  var s=ST.dash, rows=DATA.summary.rows;
+  var cnt={เขียว:0,เหลือง:0,แดง:0}; rows.forEach(function(r){ ['เขียว','เหลือง','แดง'].forEach(function(t){ if(String(r.tier).indexOf(t)>-1) cnt[t]++; }); });
+  var fix=DATA.gaps.rows.filter(function(g){return g.level==='ต้องแก้';}).length;
+  var h='<div class="cards">'+
+    card(uniq(rows,'dma').length,'DMA ทั้งหมด')+card(cnt['เขียว'],'Tier เขียว')+card(cnt['เหลือง'],'Tier เหลือง')+card(cnt['แดง'],'Tier แดง')+card(fix,'ประเด็น "ต้องแก้"')+'</div>';
+  h+='<div class="box"><div class="tools"><input type="text" id="q" placeholder="ค้นหา DMA / สถานะ…" value="'+esc(s.q)+'">'+
+    '<select id="ft">'+options(uniq(rows,'tier'),s.tier,'ทุก Tier')+'</select></div><div id="tb"></div></div>';
+  $('main').innerHTML=h;
+  var cols=[{k:'dma',t:'DMA'},{k:'tier',t:'Tier'},{k:'run_status',t:'ผลรัน'},{k:'nrw_pct',t:'NRW %'},{k:'loss_pct',t:'Loss %'},
+    {k:'cis_coverage_pct',t:'CIS %'},{k:'inflow_m3day',t:'น้ำเข้า m³/วัน'},{k:'demand_m3h',t:'Demand m³/ชม.'},
+    {k:'gx',t:'ต้องแก้',num:true,fn:function(r){return gapCount(r.dma,'ต้องแก้');}},
+    {k:'gy',t:'ควรตรวจ',num:true,fn:function(r){return gapCount(r.dma,'ควรตรวจ');}},
+    {k:'tier_note',t:'หมายเหตุ Tier',wide:true}];
+  function draw(){
+    var f=sortRows(rows.filter(function(r){return matchQ(r,s.q)&&(!s.tier||r.tier===s.tier);}),s);
+    $('tb').innerHTML=buildTable(cols,f,s,{click:true}); bindTable($('tb'),s,draw,openDma);
+  }
+  $('q').oninput=function(){s.q=this.value;draw();}; $('ft').onchange=function(){s.tier=this.value;draw();}; draw();
+  function card(n,l){ return '<div class="card"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'; }
+}
+
+/* ---------- Run Summary ---------- */
+function renderSummary(){
+  var s=ST.summary, rows=DATA.summary.rows, hd=DATA.summary.headers;
+  $('main').innerHTML='<div class="box"><div class="tools"><input type="text" id="q" placeholder="ค้นหา…" value="'+esc(s.q)+'">'+
+    '<select id="ft">'+options(uniq(rows,'tier'),s.tier,'ทุก Tier')+'</select><span class="sp"></span><span class="muted" id="cn"></span>'+
+    '<button class="btn" id="ex">ดาวน์โหลด CSV</button></div><div id="tb"></div></div>';
+  var cols=hd.map(function(k){ return {k:k,wide:(k==='tier_note'||k==='cal_status'||k==='zone_status'||k==='inp')}; });
+  function draw(){
+    var f=sortRows(rows.filter(function(r){return matchQ(r,s.q)&&(!s.tier||r.tier===s.tier);}),s);
+    $('cn').textContent=f.length+' แถว'; $('tb').innerHTML=buildTable(cols,f,s,{click:true}); bindTable($('tb'),s,draw,openDma); draw.f=f;
+  }
+  $('q').oninput=function(){s.q=this.value;draw();}; $('ft').onchange=function(){s.tier=this.value;draw();};
+  $('ex').onclick=function(){ downloadCSV('dma_run_summary.csv',hd,draw.f); }; draw();
+}
+
+/* ---------- Data Gap ---------- */
+function renderGaps(){
+  var s=ST.gaps, rows=DATA.gaps.rows, hd=DATA.gaps.headers;
+  $('main').innerHTML='<div class="box"><div class="tools"><input type="text" id="q" placeholder="ค้นหา…" value="'+esc(s.q)+'">'+
+    '<select id="fd">'+options(uniq(rows,'dma'),s.dma,'ทุก DMA')+'</select>'+
+    '<select id="fl">'+options(uniq(rows,'level'),s.level,'ทุกระดับ')+'</select><span class="sp"></span><span class="muted" id="cn"></span>'+
+    '<button class="btn" id="ex">ดาวน์โหลด CSV</button></div><div id="tb"></div></div>';
+  var cols=hd.map(function(k){ return {k:k,wide:(k==='item'||k==='detail'||k==='action'||k==='source')}; });
+  function draw(){
+    var f=sortRows(rows.filter(function(r){return matchQ(r,s.q)&&(!s.dma||r.dma===s.dma)&&(!s.level||r.level===s.level);}),s);
+    $('cn').textContent=f.length+' แถว'; $('tb').innerHTML=buildTable(cols,f,s); bindTable($('tb'),s,draw); draw.f=f;
+  }
+  $('q').oninput=function(){s.q=this.value;draw();}; $('fd').onchange=function(){s.dma=this.value;draw();};
+  $('fl').onchange=function(){s.level=this.value;draw();};
+  $('ex').onclick=function(){ downloadCSV('data_gap_report.csv',hd,draw.f); }; draw();
+}
+
+/* ---------- รายละเอียด DMA ---------- */
+function openDma(dma){
+  var r=DATA.summary.rows.filter(function(x){return x.dma===dma;});
+  var g=DATA.gaps.rows.filter(function(x){return x.dma===dma;});
+  var h='<div class="tools"><h2 style="margin:0">DMA '+esc(dma)+'</h2><span class="sp"></span><button class="btn" id="mc">ปิด</button></div>';
+  r.forEach(function(row,i){
+    if(r.length>1) h+='<h3>ผลรันที่ '+(i+1)+'</h3>';
+    h+='<div class="kv">'+DATA.summary.headers.map(function(k){
+      return '<div>'+esc(k)+'</div><div>'+(k==='tier'?tierPill(row[k]):fmt(k,row[k]))+'</div>'; }).join('')+'</div>';
+  });
+  if(!r.length) h+='<p class="muted">ไม่พบข้อมูลใน Run Summary</p>';
+  h+='<h3>Data Gap ('+g.length+')</h3>';
+  g.forEach(function(x){
+    h+='<div class="box" style="margin:8px 0"><div>'+levelPill(x.level)+' <b>'+esc(x.item)+'</b> — '+esc(x.value)+'</div>'+
+       '<div class="muted">'+esc(x.source)+'</div><div>'+esc(x.detail)+'</div><div class="muted">แนวทาง: '+esc(x.action)+'</div></div>';
+  });
+  $('modalBody').innerHTML=h; $('modal').style.display='flex';
+  $('mc').onclick=closeModal;
+}
+function closeModal(){ $('modal').style.display='none'; }
+$('modal').onclick=function(e){ if(e.target===this) closeModal(); };
+document.onkeydown=function(e){ if(e.key==='Escape') closeModal(); };
+
+/* ---------- นำเข้าข้อมูล ---------- */
+var QUEUE=[];
+function parseCSV(text){
+  text=text.replace(/^\uFEFF/,''); var rows=[],row=[],cur='',q=false;
+  for(var i=0;i<text.length;i++){
+    var c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(cur); cur=''; }
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n') i++; row.push(cur); cur=''; rows.push(row); row=[]; }
+    else cur+=c;
+  }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(function(r){ return r.some(function(x){return x!=='';}); });
+}
+function detectKind(h){
+  if(h.indexOf('run_status')>-1||h.indexOf('tier')>-1||h.indexOf('junctions')>-1) return 'summary';
+  if(h.indexOf('level')>-1&&h.indexOf('action')>-1) return 'gaps';
+  return null;
+}
+function renderImport(){
+  $('main').innerHTML='<div class="box"><div class="drop" id="drop">ลากไฟล์ CSV มาวางที่นี่ หรือ <label style="color:var(--accent);cursor:pointer">เลือกไฟล์'+
+    '<input type="file" id="fi" accept=".csv,text/csv" multiple hidden></label><br><span style="font-size:13px">ระบบแยกชนิดไฟล์ (Run Summary / Data Gap) จากหัวคอลัมน์ให้อัตโนมัติ — เลือกได้หลายไฟล์พร้อมกัน</span></div>'+
+    '<div id="files"></div><div class="tools" id="act" style="display:none;margin-top:10px">'+
+    '<select id="mode"><option value="replace">แทนที่ข้อมูลของ DMA เดียวกัน (กันซ้ำ)</option><option value="append">ต่อท้ายทั้งหมด (ไม่ตรวจซ้ำ)</option></select>'+
+    '<button class="btn p" id="go">นำเข้า</button><button class="btn" id="clr">ล้างรายการ</button></div></div>';
+  var drop=$('drop');
+  drop.ondragover=function(e){e.preventDefault();drop.classList.add('over');};
+  drop.ondragleave=function(){drop.classList.remove('over');};
+  drop.ondrop=function(e){e.preventDefault();drop.classList.remove('over');addFiles(e.dataTransfer.files);};
+  $('fi').onchange=function(){addFiles(this.files);this.value='';};
+  $('clr').onclick=function(){QUEUE=[];drawQueue();};
+  $('go').onclick=runImport; drawQueue();
+}
+function addFiles(list){
+  Array.prototype.forEach.call(list,function(f){
+    var rd=new FileReader();
+    rd.onload=function(){
+      var t=parseCSV(rd.result), head=t[0]||[], kind=detectKind(head), objs=[];
+      for(var i=1;i<t.length;i++){ var o={}; head.forEach(function(h,j){ o[h.trim()]=t[i][j]===undefined?'':t[i][j]; }); objs.push(o); }
+      var missing=[];
+      if(kind){ DATA[kind].headers.forEach(function(h){ if(head.indexOf(h)===-1) missing.push(h); }); }
+      QUEUE.push({name:f.name,kind:kind,rows:objs,missing:missing,state:kind?'พร้อม':'error'});
+      drawQueue();
+    };
+    rd.readAsText(f,'UTF-8');
+  });
+}
+function kindName(k){ return k==='summary'?'Run Summary':(k==='gaps'?'Data Gap':'ไม่รู้จักชนิดไฟล์'); }
+function drawQueue(){
+  var el=$('files'); if(!el) return;
+  el.innerHTML=QUEUE.map(function(q){
+    var dmas=q.kind?uniq(q.rows.map(function(r){return {d:String(r.dma||'').replace(/^="?(.*?)"?$/,'$1')};}),'d'):[];
+    var st=q.state==='ok'?'<span class="ok">'+esc(q.msg)+'</span>':(q.state==='fail'?'<span class="err">'+esc(q.msg)+'</span>':(q.state==='error'?'<span class="err">หัวคอลัมน์ไม่ตรงกับชนิดข้อมูลใด</span>':(q.state==='busy'?'<span class="spin"></span>':'')));
+    return '<div class="file"><span class="t">'+esc(q.name)+'</span><span class="pill n">'+kindName(q.kind)+'</span>'+
+      '<span>'+q.rows.length+' แถว'+(dmas.length?' · DMA: '+esc(dmas.join(', ')):'')+'</span>'+
+      (q.missing.length?'<span class="muted">(ไม่มีคอลัมน์: '+esc(q.missing.join(', '))+' — จะเว้นว่าง)</span>':'')+' '+st+'</div>';
+  }).join('');
+  $('act').style.display=QUEUE.length?'flex':'none';
+}
+function runImport(){
+  var todo=QUEUE.filter(function(q){return q.kind&&q.state==='พร้อม'||q.state==='fail';});
+  if(!todo.length){ toast('ไม่มีไฟล์ที่พร้อมนำเข้า'); return; }
+  $('go').disabled=true; var mode=$('mode').value, i=0;
+  (function next(){
+    if(i>=todo.length){ $('go').disabled=false; toast('นำเข้าเสร็จแล้ว'); load2(); return; }
+    var q=todo[i++]; q.state='busy'; drawQueue();
+    api('importData',{kind:q.kind,rows:q.rows,mode:mode}).then(function(r){
+      q.state='ok'; q.msg='✓ เพิ่ม '+r.added+' แถว'+(r.replaced?' (แทนที่ของเดิม '+r.replaced+' แถว)':''); drawQueue(); next();
+    }).catch(function(e){
+      q.state='fail'; q.msg='ผิดพลาด: '+(e.message||e); drawQueue(); next();
+    });
+  })();
+}
+function load2(){ api('getData').then(function(d){ DATA=d; $('stamp').textContent='อัปเดต '+new Date().toLocaleTimeString('th-TH'); }).catch(function(){}); }
+
+load();
+</script>
+</body>
+</html>
