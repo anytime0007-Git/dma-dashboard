@@ -38,7 +38,10 @@ input[type=text]{min-width:220px}
 .wrap{overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:8px}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}
-td.w{white-space:normal;min-width:220px;max-width:420px}
+td.w{white-space:normal;min-width:240px;max-width:420px;overflow-wrap:anywhere;word-break:break-word;line-height:1.45}
+td.fz,th.fz{position:sticky;left:0;background:var(--card);box-shadow:1px 0 0 var(--line);z-index:2;font-weight:500}
+th.fz{background:var(--head);z-index:3;font-weight:700}
+tbody tr:hover td.fz{background:var(--accent-bg)}
 th{background:var(--head);position:sticky;top:0;cursor:pointer;user-select:none;z-index:1}
 td.num,th.num{text-align:right}
 tbody tr:hover{background:var(--accent-bg)}
@@ -64,7 +67,7 @@ tr.click{cursor:pointer}
 </head>
 <body>
 <header>
-  <h1>DMA Dashboard</h1>
+  <h1>DMA Dashboard <small style="font-weight:400;color:var(--muted);font-size:12px">v3</small></h1>
   <nav id="nav">
     <button data-v="dash" class="on">ภาพรวม</button>
     <button data-v="summary">Run Summary</button>
@@ -157,7 +160,7 @@ function buildTable(cols,rows,s,opt){
   var h='<div class="wrap"><table><thead><tr>';
   cols.forEach(function(c){
     var num=NUMCOLS.indexOf(c.k)>-1||c.num;
-    h+='<th data-k="'+esc(c.k)+'" class="'+(num?'num':'')+'">'+esc(c.t||c.k)+(s.sort===c.k?(s.dir>0?' ▲':' ▼'):'')+'</th>';
+    h+='<th data-k="'+esc(c.k)+'" class="'+(num?'num':'')+(c.k==='dma'?' fz':'')+'">'+esc(c.t||c.k)+(s.sort===c.k?(s.dir>0?' ▲':' ▼'):'')+'</th>';
   });
   h+='</tr></thead><tbody>';
   rows.forEach(function(r,i){
@@ -165,7 +168,7 @@ function buildTable(cols,rows,s,opt){
     cols.forEach(function(c){
       var num=NUMCOLS.indexOf(c.k)>-1||c.num, v=r[c.k], cell;
       if(c.fn) cell=c.fn(r); else if(c.k==='tier') cell=tierPill(v); else if(c.k==='level') cell=levelPill(v); else cell=fmt(c.k,v);
-      h+='<td class="'+(num?'num':'')+(c.wide?' w':'')+'">'+cell+'</td>';
+      h+='<td class="'+(num?'num':'')+(c.wide?' w':'')+(c.k==='dma'?' fz':'')+'">'+cell+'</td>';
     });
     h+='</tr>';
   });
@@ -224,7 +227,8 @@ function renderSummary(){
   $('main').innerHTML='<div class="box"><div class="tools"><input type="text" id="q" placeholder="ค้นหา…" value="'+esc(s.q)+'">'+
     '<select id="ft">'+options(uniq(rows,'tier'),s.tier,'ทุก Tier')+'</select><span class="sp"></span><span class="muted" id="cn"></span>'+
     '<button class="btn" id="ex">ดาวน์โหลด CSV</button></div><div id="tb"></div></div>';
-  var cols=hd.map(function(k){ return {k:k,wide:(k==='tier_note'||k==='cal_status'||k==='zone_status'||k==='inp')}; });
+  var order=['dma'].concat(hd.filter(function(k){return k!=='dma';}));
+  var cols=order.map(function(k){ return {k:k,wide:(k==='tier_note'||k==='cal_status'||k==='zone_status'||k==='inp'||k==='note')}; });
   function draw(){
     var f=sortRows(rows.filter(function(r){return matchQ(r,s.q)&&(!s.tier||r.tier===s.tier);}),s);
     $('cn').textContent=f.length+' แถว'; $('tb').innerHTML=buildTable(cols,f,s,{click:true}); bindTable($('tb'),s,draw,openDma); draw.f=f;
